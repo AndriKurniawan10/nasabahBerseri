@@ -4,7 +4,7 @@
 <title>Berseri — Bank Sampah</title>
 <link rel="stylesheet" href="style.css">
 <link rel="icon" type="image/png" href="logo.png"></head><body><main>
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="brand"><img src="logo.png" alt="Berseri" class="logo"><div class="sub">Bank Sampah · Admin</div></div><div id="bar" style="display:none;gap:8px;align-items:center"><span id="st" class="mu" style="font-size:12px"></span><button class="btn sm" onclick="logout()">Keluar</button></div></div>
+<div class="top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="brand"><img src="logo.png" alt="Berseri" class="logo"><div class="sub">Bank Sampah · Admin</div></div><div id="bar" style="display:none;gap:8px;align-items:center"><span id="st" class="mu" style="font-size:12px"></span><button class="btn sm" onclick="logout()">Keluar</button></div></div>
 <nav id="nav"></nav><div id="v"></div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -23,9 +23,9 @@ async function load(){let r=await sb.from('bank_data').select('rev,data').eq('id
  if(r.error)throw r.error;
  if(!r.data){r=await sb.from('bank_data').insert({id:1,rev:0,data:def}).select('rev,data').single();if(r.error)throw r.error}
  db=r.data.data;rev=r.data.rev;setSt('Tersimpan ✓')}
-function loginView(){$('nav').innerHTML='';$('v').innerHTML='<div class="card"><h2>Login admin</h2><label>Email</label><input id="em" type="email" autocomplete="username"><label>Password</label><input id="lpw" type="password" autocomplete="current-password"><button class="btn" onclick="login()">Masuk</button></div>'}
+function loginView(){document.body.classList.add('login');$('nav').innerHTML='';$('v').innerHTML='<div class="card lc"><h2>Login admin</h2><label>Email</label><input id="em" type="email" autocomplete="username"><label>Password</label><input id="lpw" type="password" autocomplete="current-password"><button class="btn" onclick="login()">Masuk</button></div>'}
 async function login(){const r=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('lpw').value});if(r.error)return alert('Login gagal: '+r.error.message);start()}
-async function start(){try{await load();$('bar').style.display='flex';draw()}catch(e){$('v').innerHTML='<div class="card">Gagal memuat data: '+esc(e.message||String(e))+'<br>Cek URL/key Supabase dan tabel bank_data.</div>'}}
+async function start(){try{await load();document.body.classList.remove('login');$('bar').style.display='flex';draw()}catch(e){$('v').innerHTML='<div class="card">Gagal memuat data: '+esc(e.message||String(e))+'<br>Cek URL/key Supabase dan tabel bank_data.</div>'}}
 async function logout(){await sb.auth.signOut();$('bar').style.display='none';loginView()}
 const rp=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
 const kg=n=>(Math.round(n*100)/100).toLocaleString('id-ID')+' kg';
