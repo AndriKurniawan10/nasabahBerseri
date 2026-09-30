@@ -25,13 +25,13 @@ th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--bd);white-sp
 .logo{height:52px;width:auto;max-width:150px;object-fit:contain;flex:none}
 .sub{font-size:13px;color:var(--mu);border-left:2px solid var(--bd);padding-left:10px}
 
-body.login{min-height:100vh;background:#3f6b2d url(bg.jpg) center 20%/cover no-repeat}
+body.login{min-height:100vh;background:#3f6b2d url(bg.png) center 20%/cover no-repeat}
 body.login .top{display:none}
 body.login main{max-width:none;min-height:100vh;padding:16px;display:flex;align-items:flex-end;justify-content:center}
 body.login #v{width:100%;max-width:380px}
 body.login .lc{--tx:#1b2a1f;--mu:#4a5a4d;--bd:#cfd8cf;--bg:#fff;background:rgba(255,255,255,.9);color:#1b2a1f;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);box-shadow:0 8px 30px rgba(0,0,0,.25);margin-bottom:3vh}
 body.login .lc .btn{width:100%}
-@media (max-width:700px) and (orientation:portrait){body.login{background:#3f6b2d url(bg.jpg) top/100% auto no-repeat}}
+@media (max-width:700px) and (orientation:portrait){body.login{background:#3f6b2d url(bg.png) top/100% auto no-repeat}}
 .pr{display:none}
 @media print{
 @page{size:A4;margin:14mm}
