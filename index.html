@@ -156,6 +156,8 @@ function upT(id){const i=db.tx.findIndex(x=>x.id===id),o=db.tx[i],t={...o,date:$
  save();riw()}
 function avgB(i){const a=db.tx.filter(t=>t.type==='setor'&&t.item===i),k=sum(a,t=>t.kg);return k?sum(a,t=>t.total)/k:price(i).b}
 let LM=today().slice(0,7),REP='';
+const bln=m=>new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+function printLap(){const t=document.title;document.title='Laporan Berseri '+LM;window.print();document.title=t}
 const p2=n=>String(n).padStart(2,'0');
 function wk0(d){const x=new Date(d+'T00:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getFullYear()+'-'+p2(x.getMonth()+1)+'-'+p2(x.getDate())}
 function wlab(k){const a=new Date(k+'T00:00:00'),b=new Date(a);b.setDate(a.getDate()+6);const f=d=>d.getDate()+' '+d.toLocaleDateString('id-ID',{month:'short'});return f(a)+' – '+f(b)}
@@ -167,7 +169,7 @@ function lap(){
  const items=[...new Set([...S,...J].map(t=>t.item))],ids=[...new Set([...S,...W].map(t=>String(t.nas)))];
  const nm=id=>(db.nas.find(n=>n.id==id)||{nama:'-'}).nama,F=(a,i)=>a.filter(t=>t.item===i);
  REP=`Laporan Berseri ${LM}\nSampah masuk: ${kg(sum(S,t=>t.kg))}\nNilai setoran: ${rp(beli)}\nUang ditarik nasabah: ${rp(tk)}\nDitabung nasabah: ${rp(beli-tk)}\nSampah terjual: ${kg(sum(J,t=>t.kg))}\nPenjualan: ${rp(jl)}\nLaba: ${rp(lb)}`;
- $('v').innerHTML=`<div class="card"><h2>Laporan bulanan</h2><label>Bulan</label><input type="month" value="${LM}" onchange="LM=this.value||LM;lap()"><button class="btn" onclick="cp(REP)">Salin ringkasan</button></div>
+ $('v').innerHTML=`<div class="card"><h2>Laporan Bank Sampah Berseri</h2><div class="pr">Periode: ${bln(LM)} · Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div><label>Bulan</label><input type="month" value="${LM}" onchange="LM=this.value||LM;lap()"><div class="row"><button class="btn" onclick="cp(REP)">Salin ringkasan</button><button class="btn" onclick="printLap()">Cetak / Simpan PDF</button></div></div>
  <div class="grid"><div class="card stat"><small>Sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div><div class="card stat"><small>Nilai setoran</small><b>${rp(beli)}</b></div>
  <div class="card stat"><small>Uang ditarik nasabah</small><b>${rp(tk)}</b></div><div class="card stat"><small>Ditabung nasabah</small><b>${rp(beli-tk)}</b></div>
  <div class="card stat"><small>Pemasukan penjualan</small><b class="g">${rp(jl)}</b></div><div class="card stat"><small>Laba</small><b class="g">${rp(lb)}</b></div></div>
