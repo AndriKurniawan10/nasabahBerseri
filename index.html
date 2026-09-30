@@ -156,6 +156,11 @@ function upT(id){const i=db.tx.findIndex(x=>x.id===id),o=db.tx[i],t={...o,date:$
  save();riw()}
 function avgB(i){const a=db.tx.filter(t=>t.type==='setor'&&t.item===i),k=sum(a,t=>t.kg);return k?sum(a,t=>t.total)/k:price(i).b}
 let LM=today().slice(0,7),REP='';
+const p2=n=>String(n).padStart(2,'0');
+function wk0(d){const x=new Date(d+'T00:00:00');x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getFullYear()+'-'+p2(x.getMonth()+1)+'-'+p2(x.getDate())}
+function wlab(k){const a=new Date(k+'T00:00:00'),b=new Date(a);b.setDate(a.getDate()+6);const f=d=>d.getDate()+' '+d.toLocaleDateString('id-ID',{month:'short'});return f(a)+' – '+f(b)}
+function wkTable(S,W){const ks=[...new Set([...S,...W].map(t=>wk0(t.date)))].sort();
+ return `<div class="card"><h2>Rekap per minggu</h2><div class="tw"><table><tr><th>Minggu</th><th class="r">Masuk</th><th class="r">Setoran</th><th class="r">Tunai dibayar</th><th class="r">Ditabung</th></tr>${ks.map(k=>{const s=S.filter(t=>wk0(t.date)===k),w=W.filter(t=>wk0(t.date)===k),a=sum(s,t=>t.total),b=sum(w,t=>t.total);return`<tr><td>${wlab(k)}</td><td class="r">${kg(sum(s,t=>t.kg))}</td><td class="r">${rp(a)}</td><td class="r">${rp(b)}</td><td class="r">${rp(a-b)}</td></tr>`}).join('')||'<tr><td colspan=5 class="mu">Belum ada data bulan ini</td></tr>'}</table></div><p class="mu" style="font-size:12px">Minggu dihitung Senin–Minggu. Tunai dibayar = penarikan nasabah di minggu itu, termasuk yang diambil dari saldo tabungan.</p></div>`}
 function lap(){
  const T=db.tx.filter(t=>t.date.startsWith(LM)),S=T.filter(t=>t.type==='setor'),J=T.filter(t=>t.type==='jual'),W=T.filter(t=>t.type==='tarik');
  const beli=sum(S,t=>t.total),tk=sum(W,t=>t.total),jl=sum(J,t=>t.total),lb=jl-sum(J,t=>t.kg*avgB(t.item));
@@ -166,7 +171,7 @@ function lap(){
  <div class="grid"><div class="card stat"><small>Sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div><div class="card stat"><small>Nilai setoran</small><b>${rp(beli)}</b></div>
  <div class="card stat"><small>Uang ditarik nasabah</small><b>${rp(tk)}</b></div><div class="card stat"><small>Ditabung nasabah</small><b>${rp(beli-tk)}</b></div>
  <div class="card stat"><small>Pemasukan penjualan</small><b class="g">${rp(jl)}</b></div><div class="card stat"><small>Laba</small><b class="g">${rp(lb)}</b></div></div>
- <div class="card"><h2>Per jenis sampah</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Masuk</th><th class="r">Nilai</th><th class="r">Terjual</th><th class="r">Penjualan</th></tr>
+ ${wkTable(S,W)}<div class="card"><h2>Per jenis sampah</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Masuk</th><th class="r">Nilai</th><th class="r">Terjual</th><th class="r">Penjualan</th></tr>
  ${items.map(i=>`<tr><td>${esc(i)}</td><td class="r">${kg(sum(F(S,i),t=>t.kg))}</td><td class="r">${rp(sum(F(S,i),t=>t.total))}</td><td class="r">${kg(sum(F(J,i),t=>t.kg))}</td><td class="r">${rp(sum(F(J,i),t=>t.total))}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">Belum ada data bulan ini</td></tr>'}</table></div></div>
  <div class="card"><h2>Per nasabah</h2><div class="tw"><table><tr><th>Nasabah</th><th class="r">Setor</th><th class="r">Ditarik</th><th class="r">Ditabung</th></tr>
  ${ids.map(id=>{const s1=sum(S.filter(t=>t.nas==id),t=>t.total),w1=sum(W.filter(t=>t.nas==id),t=>t.total);return`<tr><td>${esc(nm(id))}</td><td class="r">${rp(s1)}</td><td class="r">${rp(w1)}</td><td class="r">${rp(s1-w1)}</td></tr>`}).join('')||'<tr><td colspan=4 class="mu">Belum ada data bulan ini</td></tr>'}</table></div></div>`}
