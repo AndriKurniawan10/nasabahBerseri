@@ -23,7 +23,7 @@ async function load(){let r=await sb.from('bank_data').select('rev,data').eq('id
  if(r.error)throw r.error;
  if(!r.data){r=await sb.from('bank_data').insert({id:1,rev:0,data:def}).select('rev,data').single();if(r.error)throw r.error}
  db=r.data.data;rev=r.data.rev;setSt('Tersimpan ✓')}
-function loginView(){document.body.classList.add('login');$('nav').innerHTML='';$('v').innerHTML='<div class="card lc"><h2>Login admin</h2><label>Email</label><input id="em" type="email" autocomplete="username"><label>Password</label><input id="lpw" type="password" autocomplete="current-password"><button class="btn" onclick="login()">Masuk</button></div>'}
+function loginView(){document.body.classList.add('login');$('nav').innerHTML='';$('v').innerHTML='<div class="card lc"><h2>Login admin</h2><div class="fld"><label>Email</label><input id="em" type="email" autocomplete="username" onkeydown="if(event.key===\'Enter\')login()"></div><div class="fld"><label>Password</label><input id="lpw" type="password" autocomplete="current-password" onkeydown="if(event.key===\'Enter\')login()"></div><button class="btn" onclick="login()">Masuk</button></div>'}
 async function login(){const r=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('lpw').value});if(r.error)return alert('Login gagal: '+r.error.message);start()}
 async function start(){try{await load();document.body.classList.remove('login');$('bar').style.display='flex';draw()}catch(e){$('v').innerHTML='<div class="card">Gagal memuat data: '+esc(e.message||String(e))+'<br>Cek URL/key Supabase dan tabel bank_data.</div>'}}
 async function logout(){await sb.auth.signOut();$('bar').style.display='none';loginView()}
