@@ -24,3 +24,15 @@ th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--bd);white-sp
 .brand{display:flex;align-items:center;gap:10px}.brand h1{margin:0}
 .logo{height:52px;width:auto;max-width:150px;object-fit:contain;flex:none}
 .sub{font-size:13px;color:var(--mu);border-left:2px solid var(--bd);padding-left:10px}
+
+.pr{display:none}
+@media print{
+@page{size:A4;margin:14mm}
+:root:not([data-theme="none"]){--bg:#fff;--card:#fff;--tx:#000;--mu:#555;--pr:#2e7d32;--bd:#ccc;--rd:#c62828}
+body{background:#fff;color:#000}
+main{max-width:none;padding:0}
+nav,#bar,button,input,select,label{display:none!important}
+.pr{display:block;color:#333;margin-bottom:4px}
+.card{break-inside:avoid;box-shadow:none}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
