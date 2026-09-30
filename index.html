@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bank Sampah</title>
+<style>
+:root{--bg:#f4f7f4;--card:#fff;--tx:#1b2a1f;--mu:#647468;--pr:#2e7d32;--bd:#dfe7df;--rd:#c62828;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111a13;--card:#1a251c;--tx:#e6efe7;--mu:#93a596;--pr:#66bb6a;--bd:#2a382c;--rd:#ef5350}}
+:root[data-theme="dark"]{--bg:#111a13;--card:#1a251c;--tx:#e6efe7;--mu:#93a596;--pr:#66bb6a;--bd:#2a382c;--rd:#ef5350}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:14px}
+h1{font-size:20px;margin:4px 0 12px}h2{font-size:16px;margin:0 0 10px}
+nav{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}
+nav button{flex:none;padding:8px 14px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:20px;cursor:pointer}
+nav button.on{background:var(--pr);color:#fff;border-color:var(--pr)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat small{color:var(--mu);display:block}.stat b{font-size:18px}
+label{display:block;font-size:13px;color:var(--mu);margin:8px 0 3px}
+input,select{width:100%;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.btn{margin-top:12px;padding:10px 16px;border:0;border-radius:8px;background:var(--pr);color:#fff;font:inherit;cursor:pointer}
+.btn.sm{margin:0;padding:5px 10px;font-size:13px}.btn.red{background:var(--rd)}
+.tot{margin-top:8px;font-weight:600}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--bd);white-space:nowrap}th{color:var(--mu);font-weight:500}
+.r{text-align:right}.mu{color:var(--mu)}.g{color:var(--pr)}.rd{color:var(--rd)}
+.lk{color:var(--pr);font-weight:600;text-decoration:none}
+.row{display:flex;gap:8px}.row>*{flex:1}
+</style></head><body><main>
+<div style="display:flex;justify-content:space-between;align-items:center"><h1>♻️ Bank Sampah — Admin</h1><div id="bar" style="display:none;gap:8px;align-items:center"><span id="st" class="mu" style="font-size:12px"></span><button class="btn sm" onclick="logout()">Keluar</button></div></div>
+<nav id="nav"></nav><div id="v"></div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL='ISI_URL_SUPABASE';
+const SUPABASE_KEY='ISI_ANON_KEY_SUPABASE';
+const def={prices:[["Atum",2200],["Kertas",1000],["Kardus",1500],["Plastik kresek",500],["Plastik multilayer",300],["Besi",3000],["Minyak",4000],["Kaca",200]].map(([n,b])=>({n,b,j:Math.round(b*1.3/50)*50})),nas:[],tx:[]};
+let db=def,sb,rev=0,q=Promise.resolve();
+const setSt=t=>{const e=$('st');if(e)e.textContent=t};
+function save(){q=q.then(async()=>{setSt('Menyimpan…');
+ const r=await sb.from('bank_data').update({data:db,rev:rev+1}).eq('id',1).eq('rev',rev).select('rev');
+ if(r.error){setSt('Gagal simpan');alert('Gagal simpan: '+r.error.message);return}
+ if(!r.data.length){alert('Data sudah diubah dari perangkat lain. Halaman dimuat ulang, coba input lagi.');await load();draw();return}
+ rev=r.data[0].rev;setSt('Tersimpan ✓')})}
+async function load(){let r=await sb.from('bank_data').select('rev,data').eq('id',1).maybeSingle();
+ if(r.error)throw r.error;
+ if(!r.data){r=await sb.from('bank_data').insert({id:1,rev:0,data:def}).select('rev,data').single();if(r.error)throw r.error}
+ db=r.data.data;rev=r.data.rev;setSt('Tersimpan ✓')}
+function loginView(){$('nav').innerHTML='';$('v').innerHTML='<div class="card"><h2>Login admin</h2><label>Email</label><input id="em" type="email" autocomplete="username"><label>Password</label><input id="lpw" type="password" autocomplete="current-password"><button class="btn" onclick="login()">Masuk</button></div>'}
+async function login(){const r=await sb.auth.signInWithPassword({email:$('em').value.trim(),password:$('lpw').value});if(r.error)return alert('Login gagal: '+r.error.message);start()}
+async function start(){try{await load();$('bar').style.display='flex';draw()}catch(e){$('v').innerHTML='<div class="card">Gagal memuat data: '+esc(e.message||String(e))+'<br>Cek URL/key Supabase dan tabel bank_data.</div>'}}
+async function logout(){await sb.auth.signOut();$('bar').style.display='none';loginView()}
+const rp=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
+const kg=n=>(Math.round(n*100)/100).toLocaleString('id-ID')+' kg';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+const price=n=>db.prices.find(p=>p.n===n)||{b:0,j:0};
+const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
+let tab='dash';
+const tabs=[['dash','Ringkasan'],['setor','Setor'],['jual','Jual'],['nas','Nasabah'],['harga','Harga'],['riw','Riwayat']];
+function nav(){$('nav').innerHTML=tabs.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="tab='${k}';draw()">${l}</button>`).join('')}
+function saldo(id){return sum(db.tx.filter(t=>t.nas==id),t=>t.type==='setor'?t.total:t.type==='tarik'?-t.total:0)}
+function stok(n){return sum(db.tx.filter(t=>t.item===n),t=>t.type==='setor'?t.kg:t.type==='jual'?-t.kg:0)}
+const today=()=>new Date().toISOString().slice(0,10);
+function draw(){nav();({dash,setor,jual,nas,harga,riw})[tab]()}
+function dash(){
+ const S=db.tx.filter(t=>t.type==='setor'),J=db.tx.filter(t=>t.type==='jual');
+ const beli=sum(S,t=>t.total),jl=sum(J,t=>t.total),hpp=sum(J,t=>t.kg*price(t.item).b);
+ const nilaiStok=sum(db.prices,p=>stok(p.n)*p.b),utang=sum(db.nas,n=>saldo(n.id));
+ $('v').innerHTML=`<div class="grid">
+ <div class="card stat"><small>Total sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div>
+ <div class="card stat"><small>Total sampah keluar</small><b>${kg(sum(J,t=>t.kg))}</b></div>
+ <div class="card stat"><small>Pemasukan (penjualan)</small><b class="g">${rp(jl)}</b></div>
+ <div class="card stat"><small>Laba penjualan</small><b class="g">${rp(jl-hpp)}</b></div>
+ <div class="card stat"><small>Nilai stok gudang</small><b>${rp(nilaiStok)}</b></div>
+ <div class="card stat"><small>Saldo nasabah (kewajiban)</small><b>${rp(utang)}</b></div></div>
+ <div class="card"><h2>Stok per jenis</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Stok</th><th class="r">Nilai</th></tr>
+ ${db.prices.map(p=>`<tr><td>${esc(p.n)}</td><td class="r">${kg(stok(p.n))}</td><td class="r">${rp(stok(p.n)*p.b)}</td></tr>`).join('')}</table></div>
+ <p class="mu" style="font-size:12px">Laba = penjualan − (kg terjual × harga beli nasabah saat ini). Total pembelian dari nasabah: ${rp(beli)}.</p></div>
+ <div class="card"><h2>Backup data</h2><p class="mu" style="font-size:13px">Data tersimpan online di Supabase. Backup tetap disarankan.</p>
+ <div class="row"><button class="btn sm" onclick="bk()">Salin backup</button><button class="btn sm" onclick="rs()">Pulihkan</button></div></div>`}
+function bk(){const s=JSON.stringify(db);(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>alert('Backup tersalin ke clipboard'),()=>prompt('Salin teks ini:',s))}
+function rs(){const s=prompt('Tempel teks backup:');if(!s)return;try{const d=JSON.parse(s);if(!d.prices||!d.tx)throw 0;db=d;save();draw()}catch(e){alert('Backup tidak valid')}}
+function itemOpts(){return db.prices.map(p=>`<option>${esc(p.n)}</option>`).join('')}
+function setorOld(){
+ if(!db.nas.length){$('v').innerHTML='<div class="card">Tambah nasabah dulu di tab Nasabah.</div>';return}
+ $('v').innerHTML=`<div class="card"><h2>Catat setoran nasabah</h2>
+ <label>Tanggal</label><input type="date" id="d" value="${today()}">
+ <label>Nasabah</label><select id="n">${db.nas.map(n=>`<option value="${n.id}">${esc(n.nama)}</option>`).join('')}</select>
+ <label>Jenis sampah</label><select id="i" onchange="hit('setor')">${itemOpts()}</select>
+ <label>Berat (kg)</label><input type="number" id="k" step="0.01" min="0" oninput="hit('setor')">
+ <div class="tot" id="t"></div><button class="btn" onclick="add('setor')">Simpan setoran</button></div>`;hit('setor')}
+function setor(){
+ if(!db.nas.length){$('v').innerHTML='<div class="card">Tambah nasabah dulu di tab Nasabah.</div>';return}
+ $('v').innerHTML=`<div class="card"><h2>Setoran mingguan</h2>
+ <div class="row"><div><label>Tanggal</label><input type="date" id="d" value="${today()}" onchange="lst()"></div>
+ <div><label>Nasabah</label><select id="n" onchange="ht()">${db.nas.map(n=>`<option value="${n.id}">${esc(n.nama)}</option>`).join('')}</select></div></div>
+ <label>Berat per jenis (kg) — isi yang ada saja</label>
+ <div class="tw"><table>${db.prices.map((p,i)=>`<tr><td>${esc(p.n)}<div class="mu" style="font-size:12px">${rp(p.b)}/kg</div></td><td style="width:110px"><input type="number" step="0.01" min="0" class="kgi" data-i="${i}" oninput="ht()"></td></tr>`).join('')}</table></div>
+ <div class="tot" id="t"></div>
+ <label>Uang setoran ini</label>
+ <select id="o" onchange="ht()"><option value="tabung">Tabung (masuk saldo)</option><option value="tarik">Tarik langsung semua</option><option value="sebagian">Tarik sebagian</option></select>
+ <div id="pw" style="display:none"><label>Nominal ditarik (Rp)</label><input type="number" id="pv" oninput="ht()"></div>
+ <div class="tot" id="t2"></div>
+ <button class="btn" onclick="sv()">Simpan setoran</button></div>
+ <div class="card"><h2>Setoran di tanggal ini</h2><div id="lst"></div></div>`;ht();lst()}
+function tot(){let t=0,rows=[];document.querySelectorAll('.kgi').forEach(e=>{const k=+e.value;if(k>0){const p=db.prices[+e.dataset.i];rows.push({item:p.n,kg:k,harga:p.b,total:k*p.b});t+=k*p.b}});return{t,rows}}
+function wd(t){const o=$('o').value;return o==='tarik'?t:o==='sebagian'?(+$('pv').value||0):0}
+function ht(){const t=tot().t,w=wd(t);$('pw').style.display=$('o').value==='sebagian'?'block':'none';
+ $('t').textContent='Total setoran: '+rp(t);
+ $('t2').textContent=`Dibayar tunai: ${rp(w)} · Ditabung: ${rp(t-w)} · Saldo nasabah setelah ini: ${rp(saldo($('n').value)+t-w)}`}
+function sv(){const{t,rows}=tot();if(!rows.length)return alert('Isi berat minimal satu jenis');
+ const n=+$('n').value,d=$('d').value,w=wd(t);
+ if(w>saldo(n)+t)return alert('Nominal melebihi saldo + setoran');
+ rows.forEach((r,i)=>db.tx.push({id:Date.now()+i,date:d,type:'setor',nas:n,...r}));
+ if(w>0)db.tx.push({id:Date.now()+1000,date:d,type:'tarik',nas:n,item:'-',kg:0,harga:0,total:w});
+ save();alert('Tersimpan');setor()}
+function lst(){const d=$('d').value,T=db.tx.filter(t=>t.date===d&&t.type!=='jual'),ids=[...new Set(T.map(t=>String(t.nas)))];
+ const S=sum(T.filter(t=>t.type==='setor'),t=>t.total),W=sum(T.filter(t=>t.type==='tarik'),t=>t.total);
+ $('lst').innerHTML=ids.length?`<div class="tw"><table><tr><th>Nasabah</th><th class="r">Setor</th><th class="r">Ditarik</th><th class="r">Ditabung</th></tr>${ids.map(id=>{const a=T.filter(t=>t.nas==id),s=sum(a.filter(t=>t.type==='setor'),t=>t.total),w=sum(a.filter(t=>t.type==='tarik'),t=>t.total);return`<tr><td>${esc((db.nas.find(x=>x.id==id)||{nama:'-'}).nama)}</td><td class="r">${rp(s)}</td><td class="r">${rp(w)}</td><td class="r">${rp(s-w)}</td></tr>`}).join('')}<tr><th>Total</th><th class="r">${rp(S)}</th><th class="r">${rp(W)}</th><th class="r">${rp(S-W)}</th></tr></table></div><p class="mu" style="font-size:12px">Uang tunai yang harus disiapkan hari ini: ${rp(W)}</p>`:'<span class="mu">Belum ada setoran di tanggal ini</span>'}
+function jual(){
+ $('v').innerHTML=`<div class="card"><h2>Catat penjualan ke pengepul</h2>
+ <label>Tanggal</label><input type="date" id="d" value="${today()}">
+ <label>Jenis sampah</label><select id="i" onchange="hit('jual')">${itemOpts()}</select>
+ <div class="mu" id="s"></div>
+ <label>Berat (kg)</label><input type="number" id="k" step="0.01" min="0" oninput="hit('jual')">
+ <label>Harga jual per kg (Rp)</label><input type="number" id="h" oninput="hit('jual')">
+ <div class="tot" id="t"></div><button class="btn" onclick="add('jual')">Simpan penjualan</button></div>`;hit('jual')}
+function hit(ty){
+ const p=price($('i').value);
+ if(ty==='jual'){if(document.activeElement.id==='i'||!$('h').value)$('h').value=p.j;$('s').textContent='Stok tersedia: '+kg(stok($('i').value))}
+ const h=ty==='jual'?+$('h').value:p.b;
+ $('t').textContent=ty==='setor'?`Harga beli ${rp(p.b)}/kg → Total ${rp(h*(+$('k').value||0))}`:`Total ${rp(h*(+$('k').value||0))}`}
+function add(ty){
+ const item=$('i').value,k=+$('k').value;if(!(k>0))return alert('Isi berat');
+ const h=ty==='jual'?+$('h').value:price(item).b;
+ if(ty==='jual'&&k>stok(item)&&!confirm('Stok kurang dari jumlah jual. Lanjut?'))return;
+ db.tx.push({id:Date.now(),date:$('d').value,type:ty,nas:ty==='setor'?$('n').value:null,item,kg:k,harga:h,total:k*h});
+ save();alert('Tersimpan');draw()}
+function nas(){
+ $('v').innerHTML=`<div class="card"><h2>Tambah nasabah</h2><div class="row"><input id="nm" placeholder="Nama nasabah"><button class="btn sm" style="flex:none" onclick="addN()">Tambah</button></div></div>
+ <div class="card"><h2>Daftar nasabah</h2><div class="tw"><table><tr><th>Nama</th><th class="r">Saldo</th><th></th></tr>
+ ${db.nas.map(n=>`<tr><td><a href="#" class="lk" onclick="det(${n.id});return false">${esc(n.nama)}</a></td><td class="r">${rp(saldo(n.id))}</td><td><button class="btn sm" onclick="tarik(${n.id})">Tarik saldo</button></td></tr>`).join('')||'<tr><td colspan=3 class="mu">Belum ada nasabah</td></tr>'}</table></div></div>`}
+function cp(s){(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>alert('Rekap tersalin'),()=>prompt('Salin teks ini:',s))}
+let REK='';
+function det(id,m){
+ m=m||'';const n=db.nas.find(x=>x.id==id);if(!n)return nas();
+ const T=db.tx.filter(t=>t.nas==id&&(!m||t.date.startsWith(m)));
+ const S=T.filter(t=>t.type==='setor'),W=T.filter(t=>t.type==='tarik');
+ const per=[...new Set(S.map(t=>t.item))].map(i=>{const s=S.filter(t=>t.item===i);return{n:i,kg:sum(s,t=>t.kg),tot:sum(s,t=>t.total)}});
+ const tS=sum(S,t=>t.total),tW=sum(W,t=>t.total),sd=saldo(id),lb=m||'Semua waktu';
+ REK=`Rekap Bank Sampah\nNama: ${n.nama}\nPeriode: ${lb}\n\nSetoran per jenis:\n`+(per.map(x=>`- ${x.n}: ${kg(x.kg)} = ${rp(x.tot)}`).join('\n')||'- (belum ada)')+`\n\nTotal setoran: ${rp(tS)}\nTotal penarikan: ${rp(tW)}\nSALDO SAAT INI: ${rp(sd)}\n\nRiwayat:\n`+(T.map(t=>`${t.date} ${t.type==='setor'?'Setor '+t.item+' '+t.kg+' kg':'Tarik'} ${rp(t.total)}`).join('\n')||'-');
+ $('v').innerHTML=`<button class="btn sm" onclick="nas()">← Kembali</button>
+ <div class="card" style="margin-top:10px"><h2>${esc(n.nama)}</h2>
+ <div class="grid"><div class="stat"><small>Saldo saat ini</small><b class="g">${rp(sd)}</b></div>
+ <div class="stat"><small>Setoran (${esc(lb)})</small><b>${rp(tS)}</b></div>
+ <div class="stat"><small>Penarikan (${esc(lb)})</small><b>${rp(tW)}</b></div></div>
+ <label>Filter bulan (kosongkan = semua)</label><input type="month" value="${m}" onchange="det(${id},this.value)">
+ <button class="btn" onclick="cp(REK)">Salin rekap untuk WA</button></div>
+ <div class="card"><h2>Total per jenis</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Berat</th><th class="r">Nilai</th></tr>
+ ${per.map(x=>`<tr><td>${esc(x.n)}</td><td class="r">${kg(x.kg)}</td><td class="r">${rp(x.tot)}</td></tr>`).join('')||'<tr><td colspan=3 class="mu">Belum ada setoran</td></tr>'}</table></div></div>
+ <div class="card"><h2>Riwayat</h2><div class="tw"><table><tr><th>Tgl</th><th>Jenis</th><th>Item</th><th class="r">Kg</th><th class="r">Total</th></tr>
+ ${[...T].reverse().map(t=>`<tr><td>${t.date}</td><td class="${t.type==='tarik'?'rd':''}">${t.type}</td><td>${esc(t.item)}</td><td class="r">${t.kg||''}</td><td class="r">${rp(t.total)}</td></tr>`).join('')||'<tr><td colspan=5 class="mu">Belum ada transaksi</td></tr>'}</table></div></div>`}
+function addN(){const v=$('nm').value.trim();if(!v)return;db.nas.push({id:Date.now(),nama:v});save();nas()}
+function tarik(id){const s=saldo(id),v=+prompt('Jumlah penarikan (saldo '+rp(s)+'):');if(!(v>0))return;if(v>s)return alert('Melebihi saldo');
+ db.tx.push({id:Date.now(),date:today(),type:'tarik',nas:id,item:'-',kg:0,harga:0,total:v});save();nas()}
+function harga(){
+ $('v').innerHTML=`<div class="card"><h2>Daftar harga (per kg)</h2><div class="tw"><table><tr><th>Jenis</th><th>Harga beli nasabah</th><th>Harga jual pengepul</th><th></th></tr>
+ ${db.prices.map((p,i)=>`<tr><td>${esc(p.n)}</td><td><input type="number" value="${p.b}" onchange="db.prices[${i}].b=+this.value;save()"></td><td><input type="number" value="${p.j}" onchange="db.prices[${i}].j=+this.value;save()"></td><td><button class="btn sm red" onclick="delP(${i})">×</button></td></tr>`).join('')}</table></div>
+ <label>Tambah jenis baru</label><div class="row"><input id="pn" placeholder="Nama"><input id="pb" type="number" placeholder="Harga beli"></div>
+ <button class="btn" onclick="addP()">Tambah jenis</button></div>`}
+function addP(){const n=$('pn').value.trim(),b=+$('pb').value;if(!n||!b)return;db.prices.push({n,b,j:Math.round(b*1.3/50)*50});save();harga()}
+function delP(i){if(confirm('Hapus jenis ini?')){db.prices.splice(i,1);save();harga()}}
+function riw(){
+ const L=[...db.tx].reverse(),nm=id=>(db.nas.find(n=>n.id==id)||{nama:'-'}).nama;
+ $('v').innerHTML=`<div class="card"><h2>Riwayat transaksi</h2><div class="tw"><table><tr><th>Tgl</th><th>Jenis</th><th>Nasabah</th><th>Item</th><th class="r">Kg</th><th class="r">Total</th><th></th></tr>
+ ${L.map(t=>`<tr><td>${t.date}</td><td class="${t.type==='jual'?'g':t.type==='tarik'?'rd':''}">${t.type}</td><td>${esc(nm(t.nas))}</td><td>${esc(t.item)}</td><td class="r">${t.kg||''}</td><td class="r">${rp(t.total)}</td><td><button class="btn sm red" onclick="delT(${t.id})">×</button></td></tr>`).join('')||'<tr><td colspan=7 class="mu">Belum ada transaksi</td></tr>'}</table></div></div>`}
+function delT(id){if(confirm('Hapus transaksi ini?')){db.tx=db.tx.filter(t=>t.id!==id);save();riw()}}
+if(SUPABASE_URL.startsWith('ISI_')){$('v').innerHTML='<div class="card">Isi SUPABASE_URL dan SUPABASE_KEY di bagian atas script.</div>'}
+else{sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);sb.auth.getSession().then(r=>r.data.session?start():loginView())}
+</script></body></html>
