@@ -46,7 +46,7 @@ function draw(){nav();({dash,setor,jual,nas,harga,lap,riw})[tab]()}
 function dash(){
  const S=db.tx.filter(t=>t.type==='setor'),J=db.tx.filter(t=>t.type==='jual');
  const beli=sum(S,t=>t.total),jl=sum(J,t=>t.total),hpp=sum(J,t=>t.kg*avgB(t.item));
- const nilaiStok=sum(db.prices,p=>stok(p.n)*p.b),utang=sum(db.nas,n=>saldo(n.id));
+ const IT=allItems(),orf=IT.filter(n=>!db.prices.some(p=>p.n===n)),hb=n=>price(n).b||avgB(n),nilaiStok=sum(IT,n=>stok(n)*hb(n)),utang=sum(db.nas,n=>saldo(n.id));
  $('v').innerHTML=`<div class="grid">
  <div class="card stat"><small>Total sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div>
  <div class="card stat"><small>Total sampah keluar</small><b>${kg(sum(J,t=>t.kg))}</b></div>
@@ -55,7 +55,7 @@ function dash(){
  <div class="card stat"><small>Nilai stok gudang</small><b>${rp(nilaiStok)}</b></div>
  <div class="card stat"><small>Saldo nasabah (kewajiban)</small><b>${rp(utang)}</b></div></div>
  <div class="card"><h2>Stok per jenis</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Stok</th><th class="r">Nilai</th></tr>
- ${db.prices.map(p=>`<tr><td>${esc(p.n)}</td><td class="r">${kg(stok(p.n))}</td><td class="r">${rp(stok(p.n)*p.b)}</td></tr>`).join('')}</table></div>
+ ${IT.map(n=>`<tr><td>${esc(n)}${orf.includes(n)?' <span class="rd" style="font-size:12px">(tidak ada di daftar harga)</span>':''}</td><td class="r">${kg(stok(n))}</td><td class="r">${rp(stok(n)*hb(n))}</td></tr>`).join('')}</table></div>${orf.length?`<p class="rd" style="font-size:13px">Ada setoran jenis <b>${orf.map(esc).join(', ')}</b> yang sudah tidak ada di tab Harga. Tambahkan lagi jenisnya di tab Harga supaya bisa dipilih saat setor dan dijual.</p>`:''}
  <p class="mu" style="font-size:12px">Laba = penjualan − (kg terjual × rata-rata harga beli). Total pembelian dari nasabah: ${rp(beli)}.</p></div>
  <div class="card"><h2>Backup data</h2><p class="mu" style="font-size:13px">Data tersimpan online di Supabase. Backup tetap disarankan.</p>
  <div class="row"><button class="btn sm" onclick="dl()">Unduh backup (file)</button><button class="btn sm" onclick="$('rfile').click()">Pulihkan dari file</button></div><input type="file" id="rfile" accept=".json" style="display:none" onchange="rf(this)"></div>`}
@@ -157,12 +157,14 @@ function upT(id){const i=db.tx.findIndex(x=>x.id===id),o=db.tx[i],t={...o,date:$
  const old=db.tx;db.tx=[...old.slice(0,i),t,...old.slice(i+1)];
  if([o.nas,t.nas].filter(x=>x!=null).some(n=>saldo(n)<0)&&!confirm('Saldo nasabah jadi minus. Tetap simpan?')){db.tx=old;return}
  save();riw()}
+function allItems(){const P=db.prices.map(p=>p.n);return[...P,...[...new Set(db.tx.map(t=>t.item).filter(i=>i&&i!=='-'))].filter(i=>!P.includes(i))]}
 function avgB(i){const a=db.tx.filter(t=>t.type==='setor'&&t.item===i),k=sum(a,t=>t.kg);return k?sum(a,t=>t.total)/k:price(i).b}
 let LM=today().slice(0,7),REP='';
 const bln=m=>new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
 function lbData(){
- const [Y,M]=LM.split('-').map(Number),n=new Date(Y,M,0).getDate(),P=db.prices.map(x=>x.n);
+ const [Y,M]=LM.split('-').map(Number),n=new Date(Y,M,0).getDate();
  const S=db.tx.filter(t=>t.type==='setor'&&t.date.startsWith(LM));
+ const P0=db.prices.map(x=>x.n),P=[...P0,...[...new Set(S.map(t=>t.item))].filter(i=>!P0.includes(i))];
  const rows=[],colT=P.map(()=>0);let gt=0;
  for(let d=1;d<=n;d++){const a=S.filter(t=>t.date===LM+'-'+p2(d)),v=P.map(i=>sum(a.filter(t=>t.item===i),t=>t.kg)),rt=sum(v,x=>x);v.forEach((x,j)=>colT[j]+=x);gt+=rt;rows.push({tgl:p2(d)+'/'+p2(M)+'/'+Y,v,rt})}
  return{P,rows,colT,gt}}
@@ -187,13 +189,8 @@ async function dlPdf(){
   columnStyles:{0:{cellWidth:24},[P.length+1]:{cellWidth:20}}});
  doc.save('Logbook-Berseri-'+LM+'.pdf')}
 function logbook(){
- const [Y,M]=LM.split('-').map(Number),n=new Date(Y,M,0).getDate(),P=db.prices.map(x=>x.n);
- const S=db.tx.filter(t=>t.type==='setor'&&t.date.startsWith(LM));
- const f=v=>v?(Math.round(v*100)/100).toLocaleString('id-ID'):'';
- const colT=P.map(()=>0);let rows='',gt=0;
- for(let d=1;d<=n;d++){const ds=LM+'-'+p2(d),a=S.filter(t=>t.date===ds);
-  const v=P.map(i=>sum(a.filter(t=>t.item===i),t=>t.kg)),rt=sum(v,x=>x);v.forEach((x,j)=>colT[j]+=x);gt+=rt;
-  rows+=`<tr><td class="c">${p2(d)}/${p2(M)}/${Y}</td>${v.map(x=>`<td class="r">${f(x)}</td>`).join('')}<td class="r b">${f(rt)}</td></tr>`}
+ const {P,rows:R,colT,gt}=lbData(),f=fk;
+ const rows=R.map(r=>`<tr><td class="c">${r.tgl}</td>${r.v.map(x=>`<td class="r">${f(x)}</td>`).join('')}<td class="r b">${f(r.rt)}</td></tr>`).join('');
  return `<div class="lbh"><div class="lbl"><img src="logo-rf.png"><img src="logo.png"></div><div class="lbt">LOGBOOK REKAP PENGELOLAAN SAMPAH<br>BANK SAMPAH BERSERI<br>YAYASAN REHABILITASI LINGKUNGAN DAN ALAM<br>BULAN ${bln(LM).toUpperCase()}</div><div class="lbr"><img src="logo-pln.png"></div></div>
  <table class="lbtb"><thead><tr><th rowspan="2" class="hd">Tanggal</th><th colspan="${P.length}" class="hd">Jenis Sampah</th><th rowspan="2" class="hd">Total<br>(Kg)</th></tr><tr>${P.map(x=>`<th class="hd">${esc(x)}<br>(Kg)</th>`).join('')}</tr></thead>
  <tbody>${rows}<tr class="tt"><td class="c b">JUMLAH</td>${colT.map(x=>`<td class="r b">${f(x)}</td>`).join('')}<td class="r b">${f(gt)}</td></tr></tbody></table>`}
@@ -228,7 +225,7 @@ function harga(){
  <label>Tambah jenis baru</label><div class="row"><input id="pn" placeholder="Nama"><input id="pb" type="number" placeholder="Harga beli"></div>
  <button class="btn" onclick="addP()">Tambah jenis</button></div>`}
 function addP(){const n=$('pn').value.trim(),b=+$('pb').value;if(!n||!b)return;db.prices.push({n,b,j:Math.round(b*1.3/50)*50});save();harga()}
-function delP(i){if(confirm('Hapus jenis ini?')){db.prices.splice(i,1);save();harga()}}
+function delP(i){const c=db.tx.filter(t=>t.item===db.prices[i].n).length;if(c)return alert('Jenis ini sudah dipakai di '+c+' transaksi, jadi tidak bisa dihapus. Hapus dulu transaksinya di tab Riwayat kalau memang salah input.');if(confirm('Hapus jenis ini?')){db.prices.splice(i,1);save();harga()}}
 function riw(){
  const L=[...db.tx].reverse(),nm=id=>(db.nas.find(n=>n.id==id)||{nama:'-'}).nama;
  $('v').innerHTML=`<div class="card"><h2>Riwayat transaksi</h2><div class="tw"><table><tr><th>Tgl</th><th>Jenis</th><th>Nasabah</th><th>Item</th><th class="r">Kg</th><th class="r">Total</th><th></th></tr>
