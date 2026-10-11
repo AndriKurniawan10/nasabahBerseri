@@ -9,6 +9,8 @@
 </main>
 <div id="lb"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
 const SUPABASE_URL='https://iseytlbyeshfccsbftlm.supabase.co';
 const SUPABASE_KEY='sb_publishable_iZ9-k91ojFCMRw8xQGL6Lw_fJKkKPzC';
@@ -158,6 +160,32 @@ function upT(id){const i=db.tx.findIndex(x=>x.id===id),o=db.tx[i],t={...o,date:$
 function avgB(i){const a=db.tx.filter(t=>t.type==='setor'&&t.item===i),k=sum(a,t=>t.kg);return k?sum(a,t=>t.total)/k:price(i).b}
 let LM=today().slice(0,7),REP='';
 const bln=m=>new Date(m+'-01T00:00:00').toLocaleDateString('id-ID',{month:'long',year:'numeric'});
+function lbData(){
+ const [Y,M]=LM.split('-').map(Number),n=new Date(Y,M,0).getDate(),P=db.prices.map(x=>x.n);
+ const S=db.tx.filter(t=>t.type==='setor'&&t.date.startsWith(LM));
+ const rows=[],colT=P.map(()=>0);let gt=0;
+ for(let d=1;d<=n;d++){const a=S.filter(t=>t.date===LM+'-'+p2(d)),v=P.map(i=>sum(a.filter(t=>t.item===i),t=>t.kg)),rt=sum(v,x=>x);v.forEach((x,j)=>colT[j]+=x);gt+=rt;rows.push({tgl:p2(d)+'/'+p2(M)+'/'+Y,v,rt})}
+ return{P,rows,colT,gt}}
+const fk=v=>v?(Math.round(v*100)/100).toLocaleString('id-ID'):'';
+function ldImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src})}
+async function dlPdf(){
+ if(!window.jspdf)return alert('Library PDF belum termuat. Cek koneksi internet lalu muat ulang halaman.');
+ const {P,rows,colT,gt}=lbData(),doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+ const W=297,m=10,H=15,cy=m+H/2,[rf,br,pl]=await Promise.all([ldImg('logo-rf.png'),ldImg('logo.png'),ldImg('logo-pln.png')]);
+ let x=m;
+ [rf,br].forEach(im=>{if(!im)return;const w=H*im.naturalWidth/im.naturalHeight;doc.addImage(im,'PNG',x,cy-H/2,w,H);x+=w+5});
+ if(pl){const w=H*pl.naturalWidth/pl.naturalHeight;doc.addImage(pl,'PNG',W-m-w,cy-H/2,w,H)}
+ doc.setFont('helvetica','bold').setFontSize(11);
+ const T=['LOGBOOK REKAP PENGELOLAAN SAMPAH','BANK SAMPAH BERSERI','YAYASAN REHABILITASI LINGKUNGAN DAN ALAM','BULAN '+bln(LM).toUpperCase()];
+ const lh=4.6,y0=cy-(T.length-1)*lh/2+1.2;T.forEach((t,i)=>doc.text(t,W/2,y0+i*lh,{align:'center'}));
+ const hd={fillColor:[169,200,232],textColor:0,fontStyle:'bold',halign:'center',valign:'middle'};
+ doc.autoTable({startY:m+H+5,margin:{left:m,right:m,top:m,bottom:m},theme:'grid',
+  styles:{fontSize:8,cellPadding:.5,lineColor:0,lineWidth:.2,textColor:0,valign:'middle'},
+  head:[[{content:'Tanggal',rowSpan:2,styles:hd},{content:'Jenis Sampah',colSpan:P.length,styles:hd},{content:'Total\n(Kg)',rowSpan:2,styles:hd}],P.map(x=>({content:x+'\n(Kg)',styles:hd}))],
+  body:[...rows.map(r=>[{content:r.tgl,styles:{halign:'center'}},...r.v.map(v=>({content:fk(v),styles:{halign:'right'}})),{content:fk(r.rt),styles:{halign:'right',fontStyle:'bold'}}]),
+   [{content:'JUMLAH',styles:{halign:'center',fontStyle:'bold',fillColor:[219,232,245]}},...colT.map(v=>({content:fk(v),styles:{halign:'right',fontStyle:'bold',fillColor:[219,232,245]}})),{content:fk(gt),styles:{halign:'right',fontStyle:'bold',fillColor:[219,232,245]}}]],
+  columnStyles:{0:{cellWidth:24},[P.length+1]:{cellWidth:20}}});
+ doc.save('Logbook-Berseri-'+LM+'.pdf')}
 function logbook(){
  const [Y,M]=LM.split('-').map(Number),n=new Date(Y,M,0).getDate(),P=db.prices.map(x=>x.n);
  const S=db.tx.filter(t=>t.type==='setor'&&t.date.startsWith(LM));
@@ -166,7 +194,7 @@ function logbook(){
  for(let d=1;d<=n;d++){const ds=LM+'-'+p2(d),a=S.filter(t=>t.date===ds);
   const v=P.map(i=>sum(a.filter(t=>t.item===i),t=>t.kg)),rt=sum(v,x=>x);v.forEach((x,j)=>colT[j]+=x);gt+=rt;
   rows+=`<tr><td class="c">${p2(d)}/${p2(M)}/${Y}</td>${v.map(x=>`<td class="r">${f(x)}</td>`).join('')}<td class="r b">${f(rt)}</td></tr>`}
- return `<div class="lbh"><img src="logo-rf.png" class="l1"><img src="logo.png" class="l2"><div class="lbt">LOGBOOK REKAP PENGELOLAAN SAMPAH<br>BANK SAMPAH BERSERI<br>YAYASAN REHABILITASI LINGKUNGAN DAN ALAM<br>BULAN ${bln(LM).toUpperCase()}</div><img src="logo-pln.png" class="l3"></div>
+ return `<div class="lbh"><div class="lbl"><img src="logo-rf.png"><img src="logo.png"></div><div class="lbt">LOGBOOK REKAP PENGELOLAAN SAMPAH<br>BANK SAMPAH BERSERI<br>YAYASAN REHABILITASI LINGKUNGAN DAN ALAM<br>BULAN ${bln(LM).toUpperCase()}</div><div class="lbr"><img src="logo-pln.png"></div></div>
  <table class="lbtb"><thead><tr><th rowspan="2" class="hd">Tanggal</th><th colspan="${P.length}" class="hd">Jenis Sampah</th><th rowspan="2" class="hd">Total<br>(Kg)</th></tr><tr>${P.map(x=>`<th class="hd">${esc(x)}<br>(Kg)</th>`).join('')}</tr></thead>
  <tbody>${rows}<tr class="tt"><td class="c b">JUMLAH</td>${colT.map(x=>`<td class="r b">${f(x)}</td>`).join('')}<td class="r b">${f(gt)}</td></tr></tbody></table>`}
 function printLap(){const t=document.title;document.title='Logbook Berseri '+LM;$('lb').innerHTML=logbook();document.body.classList.add('pl');
@@ -183,7 +211,7 @@ function lap(){
  const items=[...new Set([...S,...J].map(t=>t.item))],ids=[...new Set([...S,...W].map(t=>String(t.nas)))];
  const nm=id=>(db.nas.find(n=>n.id==id)||{nama:'-'}).nama,F=(a,i)=>a.filter(t=>t.item===i);
  REP=`Laporan Berseri ${LM}\nSampah masuk: ${kg(sum(S,t=>t.kg))}\nNilai setoran: ${rp(beli)}\nUang ditarik nasabah: ${rp(tk)}\nDitabung nasabah: ${rp(beli-tk)}\nSampah terjual: ${kg(sum(J,t=>t.kg))}\nPenjualan: ${rp(jl)}\nLaba: ${rp(lb)}`;
- $('v').innerHTML=`<div class="card"><h2>Laporan Bank Sampah Berseri</h2><div class="mu" style="font-size:13px;margin-bottom:6px">Tombol cetak menghasilkan format Logbook Rekap Pengelolaan Sampah (A4 landscape), kolom mengikuti jenis sampah di tab Harga.</div><div class="pr">Periode: ${bln(LM)} · Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div><label>Bulan</label><input type="month" value="${LM}" onchange="LM=this.value||LM;lap()"><div class="row"><button class="btn" onclick="cp(REP)">Salin ringkasan</button><button class="btn" onclick="printLap()">Cetak / Simpan PDF</button></div></div>
+ $('v').innerHTML=`<div class="card"><h2>Laporan Bank Sampah Berseri</h2><div class="mu" style="font-size:13px;margin-bottom:6px">Tombol Unduh PDF dan Cetak menghasilkan format Logbook Rekap Pengelolaan Sampah (A4 landscape), kolom mengikuti jenis sampah di tab Harga.</div><div class="pr">Periode: ${bln(LM)} · Dicetak: ${new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}</div><label>Bulan</label><input type="month" value="${LM}" onchange="LM=this.value||LM;lap()"><div class="row"><button class="btn" onclick="cp(REP)">Salin ringkasan</button><button class="btn" onclick="dlPdf()">Unduh PDF</button><button class="btn" onclick="printLap()" style="background:var(--card);color:var(--tx);border:1px solid var(--bd)">Cetak</button></div></div>
  <div class="grid"><div class="card stat"><small>Sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div><div class="card stat"><small>Nilai setoran</small><b>${rp(beli)}</b></div>
  <div class="card stat"><small>Uang ditarik nasabah</small><b>${rp(tk)}</b></div><div class="card stat"><small>Ditabung nasabah</small><b>${rp(beli-tk)}</b></div>
  <div class="card stat"><small>Pemasukan penjualan</small><b class="g">${rp(jl)}</b></div><div class="card stat"><small>Laba</small><b class="g">${rp(lb)}</b></div></div>
