@@ -46,7 +46,7 @@ function draw(){nav();({dash,setor,jual,nas,harga,lap,riw})[tab]()}
 function dash(){
  const S=db.tx.filter(t=>t.type==='setor'),J=db.tx.filter(t=>t.type==='jual');
  const beli=sum(S,t=>t.total),jl=sum(J,t=>t.total),hpp=sum(J,t=>t.kg*avgB(t.item));
- const IT=allItems(),orf=IT.filter(n=>!db.prices.some(p=>p.n===n)),hb=n=>price(n).b||avgB(n),nilaiStok=sum(IT,n=>stok(n)*hb(n)),utang=sum(db.nas,n=>saldo(n.id));
+ const IT=allItems(),orf=ORF=IT.filter(n=>!db.prices.some(p=>p.n===n)),hb=n=>price(n).b||avgB(n),nilaiStok=sum(IT,n=>stok(n)*hb(n)),utang=sum(db.nas,n=>saldo(n.id));
  $('v').innerHTML=`<div class="grid">
  <div class="card stat"><small>Total sampah masuk</small><b>${kg(sum(S,t=>t.kg))}</b></div>
  <div class="card stat"><small>Total sampah keluar</small><b>${kg(sum(J,t=>t.kg))}</b></div>
@@ -55,7 +55,7 @@ function dash(){
  <div class="card stat"><small>Nilai stok gudang</small><b>${rp(nilaiStok)}</b></div>
  <div class="card stat"><small>Saldo nasabah (kewajiban)</small><b>${rp(utang)}</b></div></div>
  <div class="card"><h2>Stok per jenis</h2><div class="tw"><table><tr><th>Jenis</th><th class="r">Stok</th><th class="r">Nilai</th></tr>
- ${IT.map(n=>`<tr><td>${esc(n)}${orf.includes(n)?' <span class="rd" style="font-size:12px">(tidak ada di daftar harga)</span>':''}</td><td class="r">${kg(stok(n))}</td><td class="r">${rp(stok(n)*hb(n))}</td></tr>`).join('')}</table></div>${orf.length?`<p class="rd" style="font-size:13px">Ada setoran jenis <b>${orf.map(esc).join(', ')}</b> yang sudah tidak ada di tab Harga. Tambahkan lagi jenisnya di tab Harga supaya bisa dipilih saat setor dan dijual.</p>`:''}
+ ${IT.map(n=>`<tr><td>${esc(n)}${orf.includes(n)?' <span class="rd" style="font-size:12px">(tidak ada di daftar harga)</span>':''}</td><td class="r">${kg(stok(n))}</td><td class="r">${rp(stok(n)*hb(n))}</td></tr>`).join('')}</table></div>${orf.length?`<p class="rd" style="font-size:13px">Ada setoran jenis <b>${orf.map(esc).join(', ')}</b> yang sudah tidak ada di tab Harga. Tambahkan jenisnya di tab Harga, atau pindahkan ke jenis yang sudah ada:</p><div class="row" style="flex-wrap:wrap;justify-content:flex-start">${orf.map((n,i)=>`<button class="btn sm" style="flex:none" onclick="mergeItem(${i})">Pindahkan &quot;${esc(n)}&quot; ke jenis lain</button>`).join('')}</div>`:''}
  <p class="mu" style="font-size:12px">Laba = penjualan − (kg terjual × rata-rata harga beli). Total pembelian dari nasabah: ${rp(beli)}.</p></div>
  <div class="card"><h2>Backup data</h2><p class="mu" style="font-size:13px">Data tersimpan online di Supabase. Backup tetap disarankan.</p>
  <div class="row"><button class="btn sm" onclick="dl()">Unduh backup (file)</button><button class="btn sm" onclick="$('rfile').click()">Pulihkan dari file</button></div><input type="file" id="rfile" accept=".json" style="display:none" onchange="rf(this)"></div>`}
@@ -157,6 +157,13 @@ function upT(id){const i=db.tx.findIndex(x=>x.id===id),o=db.tx[i],t={...o,date:$
  const old=db.tx;db.tx=[...old.slice(0,i),t,...old.slice(i+1)];
  if([o.nas,t.nas].filter(x=>x!=null).some(n=>saldo(n)<0)&&!confirm('Saldo nasabah jadi minus. Tetap simpan?')){db.tx=old;return}
  save();riw()}
+let ORF=[];
+function mergeItem(i){const from=ORF[i];if(!from)return;
+ const to=(prompt('Pindahkan semua transaksi "'+from+'" ke jenis apa? Ketik nama persis:\n'+db.prices.map(p=>p.n).join(', '),'Atum')||'').trim();if(!to)return;
+ const tp=db.prices.find(p=>p.n.toLowerCase()===to.toLowerCase());if(!tp)return alert('Jenis "'+to+'" tidak ada di tab Harga.');
+ const c=db.tx.filter(t=>t.item===from).length;
+ if(!confirm(c+' transaksi "'+from+'" akan dipindah ke "'+tp.n+'". Harga per kg di transaksi lama tetap dipakai, jadi saldo nasabah tidak berubah. Lanjut?'))return;
+ db.tx.forEach(t=>{if(t.item===from)t.item=tp.n});save();draw()}
 function allItems(){const P=db.prices.map(p=>p.n);return[...P,...[...new Set(db.tx.map(t=>t.item).filter(i=>i&&i!=='-'))].filter(i=>!P.includes(i))]}
 function avgB(i){const a=db.tx.filter(t=>t.type==='setor'&&t.item===i),k=sum(a,t=>t.kg);return k?sum(a,t=>t.total)/k:price(i).b}
 let LM=today().slice(0,7),REP='';
