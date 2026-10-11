@@ -37,8 +37,8 @@ const $=id=>document.getElementById(id);
 const price=n=>db.prices.find(p=>p.n===n)||{b:0,j:0};
 const sum=(a,f)=>a.reduce((s,x)=>s+f(x),0);
 let tab='dash';
-const tabs=[['dash','Ringkasan'],['setor','Setor'],['jual','Jual'],['nas','Nasabah'],['harga','Harga'],['lap','Laporan'],['riw','Riwayat']];
-function nav(){$('nav').innerHTML=tabs.map(([k,l])=>`<button class="${k===tab?'on':''}" onclick="tab='${k}';draw()">${l}</button>`).join('')}
+const tabs=[['dash','Ringkasan','🏠'],['setor','Setor','⬇️'],['jual','Jual','💰'],['nas','Nasabah','👥'],['harga','Harga','🏷️'],['lap','Laporan','📊'],['riw','Riwayat','🕒']];
+function nav(){$('nav').innerHTML=tabs.map(([k,l,i])=>`<button class="${k===tab?'on':''}" onclick="tab='${k}';draw();window.scrollTo(0,0)"><span class="ic">${i}</span><span class="nl">${l}</span></button>`).join('')}
 function saldo(id){return sum(db.tx.filter(t=>t.nas==id),t=>t.type==='setor'?t.total:t.type==='tarik'?-t.total:0)}
 function stok(n){return sum(db.tx.filter(t=>t.item===n),t=>t.type==='setor'?t.kg:t.type==='jual'?-t.kg:0)}
 const today=()=>new Date().toISOString().slice(0,10);
@@ -119,8 +119,8 @@ function add(ty){
  save();alert('Tersimpan');draw()}
 function nas(){
  $('v').innerHTML=`<div class="card"><h2>Tambah nasabah</h2><div class="row"><input id="nm" placeholder="Nama nasabah"><button class="btn sm" style="flex:none" onclick="addN()">Tambah</button></div></div>
- <div class="card"><h2>Daftar nasabah</h2><div class="tw"><table><tr><th>Nama</th><th class="r">Saldo</th><th></th></tr>
- ${db.nas.map(n=>`<tr><td><a href="#" class="lk" onclick="det(${n.id});return false">${esc(n.nama)}</a></td><td class="r">${rp(saldo(n.id))}</td><td><button class="btn sm" onclick="tarik(${n.id})">Tarik</button> <button class="btn sm" onclick="renN(${n.id})">Ubah</button> <button class="btn sm red" onclick="delN(${n.id})">×</button></td></tr>`).join('')||'<tr><td colspan=3 class="mu">Belum ada nasabah</td></tr>'}</table></div></div>`}
+ <div class="card"><h2>Daftar nasabah</h2><div class="tw"><table class="rt"><tr class="hr"><th>Nama</th><th class="r">Saldo</th><th></th></tr>
+ ${db.nas.map(n=>`<tr><td data-label="Nama"><a href="#" class="lk" onclick="det(${n.id});return false">${esc(n.nama)}</a></td><td class="r" data-label="Saldo">${rp(saldo(n.id))}</td><td class="act"><button class="btn sm" onclick="tarik(${n.id})">Tarik</button> <button class="btn sm" onclick="renN(${n.id})">Ubah</button> <button class="btn sm red" onclick="delN(${n.id})">×</button></td></tr>`).join('')||'<tr><td colspan=3 class="mu">Belum ada nasabah</td></tr>'}</table></div></div>`}
 function cp(s){(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>alert('Rekap tersalin'),()=>prompt('Salin teks ini:',s))}
 let REK='';
 function det(id,m){
@@ -227,16 +227,16 @@ function addN(){const v=$('nm').value.trim();if(!v)return;db.nas.push({id:Date.n
 function tarik(id){const s=saldo(id),v=+prompt('Jumlah penarikan (saldo '+rp(s)+'):');if(!(v>0))return;if(v>s)return alert('Melebihi saldo');
  db.tx.push({id:Date.now(),date:today(),type:'tarik',nas:id,item:'-',kg:0,harga:0,total:v});save();nas()}
 function harga(){
- $('v').innerHTML=`<div class="card"><h2>Daftar harga (per kg)</h2><div class="tw"><table><tr><th>Jenis</th><th>Harga beli nasabah</th><th>Harga jual pengepul</th><th></th></tr>
- ${db.prices.map((p,i)=>`<tr><td>${esc(p.n)}</td><td><input type="number" value="${p.b}" onchange="db.prices[${i}].b=+this.value;save()"></td><td><input type="number" value="${p.j}" onchange="db.prices[${i}].j=+this.value;save()"></td><td><button class="btn sm red" onclick="delP(${i})">×</button></td></tr>`).join('')}</table></div>
+ $('v').innerHTML=`<div class="card"><h2>Daftar harga (per kg)</h2><div class="tw"><table class="rt"><tr class="hr"><th>Jenis</th><th>Harga beli nasabah</th><th>Harga jual pengepul</th><th></th></tr>
+ ${db.prices.map((p,i)=>`<tr><td data-label="Jenis"><b>${esc(p.n)}</b></td><td data-label="Harga beli nasabah"><input type="number" value="${p.b}" onchange="db.prices[${i}].b=+this.value;save()"></td><td data-label="Harga jual pengepul"><input type="number" value="${p.j}" onchange="db.prices[${i}].j=+this.value;save()"></td><td class="act"><button class="btn sm red" onclick="delP(${i})">×</button></td></tr>`).join('')}</table></div>
  <label>Tambah jenis baru</label><div class="row"><input id="pn" placeholder="Nama"><input id="pb" type="number" placeholder="Harga beli"></div>
  <button class="btn" onclick="addP()">Tambah jenis</button></div>`}
 function addP(){const n=$('pn').value.trim(),b=+$('pb').value;if(!n||!b)return;db.prices.push({n,b,j:Math.round(b*1.3/50)*50});save();harga()}
 function delP(i){const c=db.tx.filter(t=>t.item===db.prices[i].n).length;if(c)return alert('Jenis ini sudah dipakai di '+c+' transaksi, jadi tidak bisa dihapus. Hapus dulu transaksinya di tab Riwayat kalau memang salah input.');if(confirm('Hapus jenis ini?')){db.prices.splice(i,1);save();harga()}}
 function riw(){
  const L=[...db.tx].reverse(),nm=id=>(db.nas.find(n=>n.id==id)||{nama:'-'}).nama;
- $('v').innerHTML=`<div class="card"><h2>Riwayat transaksi</h2><div class="tw"><table><tr><th>Tgl</th><th>Jenis</th><th>Nasabah</th><th>Item</th><th class="r">Kg</th><th class="r">Total</th><th></th></tr>
- ${L.map(t=>`<tr><td>${t.date}</td><td class="${t.type==='jual'?'g':t.type==='tarik'?'rd':''}">${t.type}</td><td>${esc(nm(t.nas))}</td><td>${esc(t.item)}</td><td class="r">${t.kg||''}</td><td class="r">${rp(t.total)}</td><td><button class="btn sm" onclick="editT(${t.id})">Ubah</button> <button class="btn sm red" onclick="delT(${t.id})">×</button></td></tr>`).join('')||'<tr><td colspan=7 class="mu">Belum ada transaksi</td></tr>'}</table></div></div>`}
+ $('v').innerHTML=`<div class="card"><h2>Riwayat transaksi</h2><div class="tw"><table class="rt"><tr class="hr"><th>Tgl</th><th>Jenis</th><th>Nasabah</th><th>Item</th><th class="r">Kg</th><th class="r">Total</th><th></th></tr>
+ ${L.map(t=>`<tr><td data-label="Tanggal">${t.date}</td><td data-label="Jenis" class="${t.type==='jual'?'g':t.type==='tarik'?'rd':''}">${t.type}</td><td data-label="Nasabah">${esc(nm(t.nas))}</td><td data-label="Item">${esc(t.item)}</td><td class="r" data-label="Kg">${t.kg||'-'}</td><td class="r" data-label="Total">${rp(t.total)}</td><td class="act"><button class="btn sm" onclick="editT(${t.id})">Ubah</button> <button class="btn sm red" onclick="delT(${t.id})">×</button></td></tr>`).join('')||'<tr><td colspan=7 class="mu">Belum ada transaksi</td></tr>'}</table></div></div>`}
 function delT(id){const t=db.tx.find(x=>x.id===id);if(!t||!confirm('Hapus transaksi ini?'))return;const old=db.tx;db.tx=old.filter(x=>x.id!==id);
  if(t.nas!=null&&saldo(t.nas)<0&&!confirm('Saldo nasabah akan jadi minus. Tetap hapus?')){db.tx=old;return}
  save();riw()}
