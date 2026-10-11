@@ -55,11 +55,10 @@ nav,#bar,button,input,select,label{display:none!important}
 
 #lb{display:none;page:lb}
 @page lb{size:A4 landscape;margin:7mm 10mm}
-.lbh{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:8px;position:relative}
-.lbh .l1{height:38px;justify-self:start;grid-row:1;grid-column:1}
-.lbh .l2{height:38px;position:absolute;left:150px;top:0}
-.lbh .lbt{grid-column:2;grid-row:1;text-align:center;font-weight:700;font-size:11.5pt;line-height:1.2;color:#000}
-.lbh .l3{height:32px;justify-self:end;grid-column:3;grid-row:1}
+.lbh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.lbl,.lbr{flex:1;display:flex;align-items:center;gap:10px}.lbr{justify-content:flex-end}
+.lbh img{height:42px;width:auto;display:block}
+.lbh .lbt{flex:2;text-align:center;font-weight:700;font-size:11.5pt;line-height:1.2;color:#000}
 .lbtb{width:100%;border-collapse:collapse;color:#000;font-size:8.5pt;table-layout:fixed}.lbtb th:first-child,.lbtb td:first-child{width:78px}.lbtb th:last-child,.lbtb td:last-child{width:62px}
 .lbtb th,.lbtb td{border:1px solid #000;padding:.6px 4px;line-height:1.2}
 .lbtb .hd{background:#a9c8e8;font-weight:700;text-align:center}
